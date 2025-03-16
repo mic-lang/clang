@@ -22,7 +22,7 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
-    if: true 
+    if: true
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write

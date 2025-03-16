@@ -13,7 +13,7 @@ jobs:
   validate-tag:
     name: Validate Tag
     runs-on: ubuntu-latest
-    if: true 
+    if: true
     outputs:
       release-version: ${{ steps.validate-tag.outputs.release-version }}
     steps:

@@ -42,7 +42,7 @@ Parser::ParseDeclarationStartingWithTemplate(DeclaratorContext Context,
                                              ParsedAttributes &AccessAttrs) {
   ObjCDeclContextSwitch ObjCDC(*this);
 
-  if (Tok.is(tok::kw_template) && NextToken().isNot(tok::less)) {
+  if (Tok.isOneOf(tok::kw_template, tok::kw_lifetime) && NextToken().isNot(tok::less)) {
     return ParseExplicitInstantiation(Context, SourceLocation(), ConsumeToken(),
                                       DeclEnd, AccessAttrs,
                                       AccessSpecifier::AS_none);
@@ -78,7 +78,7 @@ Parser::ParseDeclarationStartingWithTemplate(DeclaratorContext Context,
 Parser::DeclGroupPtrTy Parser::ParseTemplateDeclarationOrSpecialization(
     DeclaratorContext Context, SourceLocation &DeclEnd,
     ParsedAttributes &AccessAttrs, AccessSpecifier AS) {
-  assert(Tok.isOneOf(tok::kw_export, tok::kw_template) &&
+  assert(Tok.isOneOf(tok::kw_export, tok::kw_template, tok::kw_lifetime) &&
          "Token does not start a template declaration.");
 
   MultiParseScope TemplateParamScopes(*this);
@@ -121,7 +121,7 @@ Parser::DeclGroupPtrTy Parser::ParseTemplateDeclarationOrSpecialization(
 
     // Consume the 'template', which should be here.
     SourceLocation TemplateLoc;
-    if (!TryConsumeToken(tok::kw_template, TemplateLoc)) {
+    if (!TryConsumeToken(tok::kw_template, TemplateLoc) && !TryConsumeToken(tok::kw_lifetime, TemplateLoc)) {
       Diag(Tok.getLocation(), diag::err_expected_template);
       return nullptr;
     }
@@ -161,7 +161,7 @@ Parser::DeclGroupPtrTy Parser::ParseTemplateDeclarationOrSpecialization(
     ParamLists.push_back(Actions.ActOnTemplateParameterList(
         CurTemplateDepthTracker.getDepth(), ExportLoc, TemplateLoc, LAngleLoc,
         TemplateParams, RAngleLoc, OptionalRequiresClauseConstraintER.get()));
-  } while (Tok.isOneOf(tok::kw_export, tok::kw_template));
+  } while (Tok.isOneOf(tok::kw_export, tok::kw_template, tok::kw_lifetime));
 
   ParsedTemplateInfo TemplateInfo(&ParamLists, isSpecialization,
                                   LastParamListWasEmpty);
@@ -1262,7 +1262,7 @@ bool Parser::AnnotateTemplateIdToken(TemplateTy Template, TemplateNameKind TNK,
                                      UnqualifiedId &TemplateName,
                                      bool AllowTypeAnnotation,
                                      bool TypeConstraint) {
-  assert(getLangOpts().CPlusPlus && "Can only annotate template-ids in C++");
+  assert((getLangOpts().CPlusPlus || getLangOpts().Mic) && "Can only annotate template-ids in C++");
   assert((Tok.is(tok::less) || TypeConstraint) &&
          "Parser isn't at the beginning of a template-id");
   assert(!(TypeConstraint && AllowTypeAnnotation) && "type-constraint can't be "

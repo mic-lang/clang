@@ -602,7 +602,10 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     const PointerType *PTy = cast<PointerType>(Ty);
     QualType ETy = PTy->getPointeeType();
     unsigned AS = getTargetAddressSpace(ETy);
-    ResultType = llvm::PointerType::get(getLLVMContext(), AS);
+    if (Context.getLangOpts().Mic)
+      ResultType = llvm::PointerType::get(getLLVMContext(), /*AS*/0);
+    else
+      ResultType = llvm::PointerType::get(getLLVMContext(), AS);
     break;
   }
 

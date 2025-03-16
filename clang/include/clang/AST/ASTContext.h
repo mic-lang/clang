@@ -373,6 +373,9 @@ class ASTContext : public RefCountedBase<ASTContext> {
   /// The typedef for the __uint128_t type.
   mutable TypedefDecl *UInt128Decl = nullptr;
 
+  /// The typedef for the __region_t type.
+  mutable TypedefDecl *RegionDecl = nullptr;
+
   /// The typedef for the target specific predefined
   /// __builtin_va_list type.
   mutable TypedefDecl *BuiltinVaListDecl = nullptr;
@@ -1309,6 +1312,9 @@ public:
   /// Retrieve the declaration for the 128-bit unsigned integer type.
   TypedefDecl *getUInt128Decl() const;
 
+  /// Retrieve the declaration for the region type.
+  TypedefDecl *getRegionDecl() const;
+  
   //===--------------------------------------------------------------------===//
   //                           Type Constructors
   //===--------------------------------------------------------------------===//

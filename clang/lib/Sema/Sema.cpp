@@ -343,7 +343,9 @@ void Sema::Initialize() {
     if (IdResolver.begin(UInt128) == IdResolver.end())
       PushOnScopeChains(Context.getUInt128Decl(), TUScope);
   }
-
+  
+  if (getLangOpts().Mic)
+    PushOnScopeChains(Context.getRegionDecl(), TUScope);
 
   // Initialize predefined Objective-C types:
   if (getLangOpts().ObjC) {

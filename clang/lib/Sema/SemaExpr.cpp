@@ -6490,7 +6490,7 @@ ExprResult Sema::BuildCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
     if (CheckInvalidBuiltinCountedByRef(Arg, FunctionArgKind))
       return ExprError();
 
-  if (getLangOpts().CPlusPlus) {
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
     // If this is a pseudo-destructor expression, build the call immediately.
     if (isa<CXXPseudoDestructorExpr>(Fn)) {
       if (!ArgExprs.empty()) {
@@ -16912,6 +16912,8 @@ bool Sema::DiagnoseAssignmentResult(AssignConvertType ConvTy,
     Qualifiers lhq = SrcType->getPointeeType().getQualifiers();
     Qualifiers rhq = DstType->getPointeeType().getQualifiers();
     if (lhq.getAddressSpace() != rhq.getAddressSpace()) {
+      if (getLangOpts().Mic)
+        return false;
       DiagKind = diag::err_typecheck_incompatible_address_space;
       break;
     } else if (lhq.getObjCLifetime() != rhq.getObjCLifetime()) {

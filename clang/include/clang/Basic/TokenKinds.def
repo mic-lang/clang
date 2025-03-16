@@ -381,6 +381,7 @@ KEYWORD(typeid                      , KEYCXX)
 KEYWORD(using                       , KEYCXX)
 KEYWORD(virtual                     , KEYCXX)
 KEYWORD(wchar_t                     , WCHARSUPPORT)
+KEYWORD(lifetime                    , KEYMIC)
 
 // C++ 2.5p2: Alternative Representations.
 CXX_KEYWORD_OPERATOR(and     , ampamp)

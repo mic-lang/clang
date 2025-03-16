@@ -110,7 +110,8 @@ enum TokenKey : unsigned {
   KEYZOS = 0x2000000,
   KEYNOZOS = 0x4000000,
   KEYHLSL = 0x8000000,
-  KEYFIXEDPOINT = 0x10000000,
+  KEYMIC = 0x10000000,
+  KEYFIXEDPOINT = 0x20000000,
   KEYMAX = KEYFIXEDPOINT, // The maximum key
   KEYALLCXX = KEYCXX | KEYCXX11 | KEYCXX20,
   KEYALL = (KEYMAX | (KEYMAX - 1)) & ~KEYNOMS18 & ~KEYNOOPENCL &
@@ -214,6 +215,8 @@ static KeywordStatus getKeywordStatusHelper(const LangOptions &LangOpts,
   case KEYNOZOS:
     // The disable behavior for this is handled in getKeywordStatus.
     return KS_Unknown;
+  case KEYMIC:
+    return LangOpts.Mic ? KS_Enabled : KS_Unknown;
   case KEYFIXEDPOINT:
     return LangOpts.FixedPoint ? KS_Enabled : KS_Disabled;
   default:

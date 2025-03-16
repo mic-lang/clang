@@ -2051,6 +2051,7 @@ Parser::DeclGroupPtrTy Parser::ParseDeclaration(DeclaratorContext Context,
   Decl *SingleDecl = nullptr;
   switch (Tok.getKind()) {
   case tok::kw_template:
+  case tok::kw_lifetime:
   case tok::kw_export:
     ProhibitAttributes(DeclAttrs);
     ProhibitAttributes(DeclSpecAttrs);
@@ -4031,7 +4032,7 @@ void Parser::ParseDeclarationSpecifiers(
 
       // In C++, check to see if this is a scope specifier like foo::bar::, if
       // so handle it as such.  This is important for ctor parsing.
-      if (getLangOpts().CPlusPlus) {
+      if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
         // C++20 [temp.spec] 13.9/6.
         // This disables the access checking rules for function template
         // explicit instantiation and explicit specialization:

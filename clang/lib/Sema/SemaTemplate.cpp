@@ -179,7 +179,7 @@ TemplateNameKind Sema::isTemplateName(Scope *S,
                                       TemplateTy &TemplateResult,
                                       bool &MemberOfUnknownSpecialization,
                                       bool Disambiguation) {
-  assert(getLangOpts().CPlusPlus && "No template names in C!");
+  assert((getLangOpts().CPlusPlus  || getLangOpts().Mic) && "No template names in C!");
 
   DeclarationName TName;
   MemberOfUnknownSpecialization = false;

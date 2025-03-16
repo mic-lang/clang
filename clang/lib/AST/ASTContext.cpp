@@ -1256,6 +1256,12 @@ TypedefDecl *ASTContext::getUInt128Decl() const {
   return UInt128Decl;
 }
 
+TypedefDecl *ASTContext::getRegionDecl() const {
+  if (!RegionDecl)
+    RegionDecl = buildImplicitTypedef(UnsignedIntTy, "__region_t");
+  return RegionDecl;
+}
+
 void ASTContext::InitBuiltinType(CanQualType &R, BuiltinType::Kind K) {
   auto *Ty = new (*this, alignof(BuiltinType)) BuiltinType(K);
   R = CanQualType::CreateUnsafe(QualType(Ty, 0));

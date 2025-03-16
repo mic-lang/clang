@@ -5464,7 +5464,7 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
 
   assert(!T.isNull() && "T must not be null after this point");
 
-  if (LangOpts.CPlusPlus && T->isFunctionType()) {
+  if ((LangOpts.CPlusPlus || LangOpts.Mic) && T->isFunctionType()) {
     const FunctionProtoType *FnTy = T->getAs<FunctionProtoType>();
     assert(FnTy && "Why oh why is there not a FunctionProtoType here?");
 
@@ -6571,7 +6571,7 @@ static void HandleAddressSpaceTypeAttribute(QualType &Type,
 
   // ISO/IEC TR 18037 S5.3 (amending C99 6.7.3): "A function type shall not be
   // qualified by an address-space qualifier."
-  if (Type->isFunctionType()) {
+  if (!S.LangOpts.Mic && Type->isFunctionType()) {
     S.Diag(Attr.getLoc(), diag::err_attribute_address_function_type);
     Attr.setInvalid();
     return;

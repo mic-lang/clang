@@ -1879,7 +1879,7 @@ void Parser::ParseClassSpecifier(tok::TokenKind TagTokKind,
 
   // Parse the (optional) nested-name-specifier.
   CXXScopeSpec &SS = DS.getTypeSpecScope();
-  if (getLangOpts().CPlusPlus) {
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
     // "FOO : BAR" is not a potential typo for "FOO::BAR".  In this context it
     // is a base-specifier-list.
     ColonProtectionRAIIObject X(*this);
@@ -2355,7 +2355,10 @@ void Parser::ParseClassSpecifier(tok::TokenKind TagTokKind,
                                   TagOrTempResult.get());
     else {
       Decl *D =
-          SkipBody.CheckSameAsPrevious ? SkipBody.New : TagOrTempResult.get();
+                SkipBody.CheckSameAsPrevious ? SkipBody.New : 
+                (isa<TemplateDecl>(TagOrTempResult.get()) ? 
+                cast<TemplateDecl>(TagOrTempResult.get())->getTemplatedDecl() 
+                : TagOrTempResult.get());
       // Parse the definition body.
       ParseStructUnionBody(StartLoc, TagType, cast<RecordDecl>(D));
       if (SkipBody.CheckSameAsPrevious &&

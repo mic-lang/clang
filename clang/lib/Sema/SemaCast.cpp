@@ -2725,7 +2725,7 @@ bool Sema::CheckAltivecInitFromScalar(SourceRange R, QualType VecTy,
 
 void CastOperation::CheckCXXCStyleCast(bool FunctionalStyle,
                                        bool ListInitialization) {
-  assert(Self.getLangOpts().CPlusPlus);
+  assert(Self.getLangOpts().CPlusPlus || Self.getLangOpts().Mic);
 
   // Handle placeholders.
   if (isPlaceholder()) {
@@ -3356,7 +3356,7 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
   Op.DestRange = CastTypeInfo->getTypeLoc().getSourceRange();
   Op.OpRange = SourceRange(LPLoc, CastExpr->getEndLoc());
 
-  if (getLangOpts().CPlusPlus) {
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
     Op.CheckCXXCStyleCast(/*FunctionalCast=*/ false,
                           isa<InitListExpr>(CastExpr));
   } else {

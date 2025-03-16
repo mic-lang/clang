@@ -161,7 +161,7 @@ bool Parser::ParseOptionalCXXScopeSpecifier(
     bool EnteringContext, bool *MayBePseudoDestructor, bool IsTypename,
     const IdentifierInfo **LastII, bool OnlyNamespace, bool InUsingDeclaration,
     bool Disambiguation) {
-  assert(getLangOpts().CPlusPlus &&
+  assert((getLangOpts().CPlusPlus  || getLangOpts().Mic) &&
          "Call sites of this function should be guarded by checking for C++");
 
   if (Tok.is(tok::annot_cxxscope)) {
@@ -2997,7 +2997,7 @@ bool Parser::ParseUnqualifiedId(CXXScopeSpec &SS, ParsedType ObjectType,
   // Handle 'A::template B'. This is for template-ids which have not
   // already been annotated by ParseOptionalCXXScopeSpecifier().
   bool TemplateSpecified = false;
-  if (Tok.is(tok::kw_template)) {
+  if (Tok.is(tok::kw_template) || Tok.is(tok::kw_lifetime)) {
     if (TemplateKWLoc && (ObjectType || SS.isSet())) {
       TemplateSpecified = true;
       *TemplateKWLoc = ConsumeToken();
@@ -3017,7 +3017,7 @@ bool Parser::ParseUnqualifiedId(CXXScopeSpec &SS, ParsedType ObjectType,
     IdentifierInfo *Id = Tok.getIdentifierInfo();
     SourceLocation IdLoc = ConsumeToken();
 
-    if (!getLangOpts().CPlusPlus) {
+    if (!getLangOpts().CPlusPlus && !getLangOpts().Mic) {
       // If we're not in C++, only identifiers matter. Record the
       // identifier and return.
       Result.setIdentifier(Id, IdLoc);

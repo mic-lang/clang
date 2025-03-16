@@ -73,12 +73,6 @@ jobs:
 
     - name: Checkout LLVM
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      with:
-        repository: mic-lang/clang
-        ref: mic
-        token: $MY_GITHUB_TOKEN
-        ssh-key: $MY_SSH_KEY
-
 
     - name: Install Dependencies
       shell: bash

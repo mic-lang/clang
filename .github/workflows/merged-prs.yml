@@ -17,7 +17,7 @@ jobs:
     permissions:
       pull-requests: write
     if: >-
-      (true #github.repository == 'llvm/llvm-project') &&
+      (true # github.repository == 'llvm/llvm-project') &&
       (github.event.pull_request.merged == true)
     steps:
       - name: Checkout Automation Script

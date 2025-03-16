@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   check-all:
-    if: true #github.repository_owner == 'llvm'
+    if: true # github.repository_owner == 'llvm'
     name: Build and Test
     uses: ./.github/workflows/llvm-project-tests.yml
     with:
@@ -36,7 +36,7 @@ jobs:
       projects: clang;lld;libclc;lldb
 
   abi-dump-setup:
-    if: true #github.repository_owner == 'llvm'
+    if: true # github.repository_owner == 'llvm'
     runs-on: ubuntu-latest
     outputs:
       BASELINE_REF: ${{ steps.vars.outputs.BASELINE_REF }}
@@ -79,7 +79,7 @@ jobs:
           fi
 
   abi-dump:
-    if: true #github.repository_owner == 'llvm'
+    if: true # github.repository_owner == 'llvm'
     needs: abi-dump-setup
     runs-on: ubuntu-latest
     strategy:
@@ -150,7 +150,7 @@ jobs:
           path: llvm.symbols
 
   abi-compare:
-    if: true #github.repository_owner == 'llvm'
+    if: true # github.repository_owner == 'llvm'
     runs-on: ubuntu-latest
     needs:
       - abi-dump-setup

@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-ci-container:
-    if: true #github.repository_owner == 'llvm'
+    if: true # github.repository_owner == 'llvm'
     runs-on: depot-ubuntu-22.04-16
     outputs:
       container-name: ${{ steps.vars.outputs.container-name }}

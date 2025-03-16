@@ -11,7 +11,7 @@ jobs:
     permissions:
       issues: write
     runs-on: ubuntu-latest
-    if: true # github.repository == 'llvm/llvm-project'
+    if: true 
     steps:
       - uses: llvm/actions/issue-labeler@main
         with:

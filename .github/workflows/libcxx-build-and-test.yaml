@@ -35,7 +35,7 @@ concurrency:
 
 jobs:
   stage1:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: libcxx-self-hosted-linux
     container: ghcr.io/llvm/libcxx-linux-builder:d8a0709b1090350a7fe3604d8ab78c7d62f10698
     continue-on-error: false
@@ -73,7 +73,7 @@ jobs:
             **/CMakeOutput.log
             **/crash_diagnostics/*
   stage2:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: libcxx-self-hosted-linux
     container: ghcr.io/llvm/libcxx-linux-builder:d8a0709b1090350a7fe3604d8ab78c7d62f10698
     needs: [ stage1 ]
@@ -119,7 +119,7 @@ jobs:
             **/CMakeOutput.log
             **/crash_diagnostics/*
   stage3:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     needs: [ stage1, stage2 ]
     continue-on-error: false
     strategy:

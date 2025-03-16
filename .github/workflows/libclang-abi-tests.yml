@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   abi-dump-setup:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: ubuntu-latest
     outputs:
       BASELINE_REF: ${{ steps.vars.outputs.BASELINE_REF }}
@@ -81,7 +81,7 @@ jobs:
           fi
 
   abi-dump:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     needs: abi-dump-setup
     runs-on: ubuntu-latest
     strategy:
@@ -136,7 +136,7 @@ jobs:
           path: '*${{ matrix.ref }}.abi'
 
   abi-compare:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: ubuntu-latest
     needs:
       - abi-dump-setup

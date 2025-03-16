@@ -28,7 +28,7 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     permissions:
       packages: write
 

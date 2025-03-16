@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   version_check:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: ubuntu-latest
     steps:
       - name: Fetch LLVM sources

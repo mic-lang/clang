@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-ci-container-windows:
-    if: true # github.repository_owner == 'llvm'
+    if: true 
     runs-on: windows-2019
     outputs:
       container-name: ${{ steps.vars.outputs.container-name }}

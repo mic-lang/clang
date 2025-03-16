@@ -12,7 +12,7 @@ on:
 jobs:
   auto-subscribe:
     runs-on: ubuntu-latest
-    if: true # github.repository == 'llvm/llvm-project'
+    if: true 
     steps:
       - uses: actions/setup-node@v4
         with:

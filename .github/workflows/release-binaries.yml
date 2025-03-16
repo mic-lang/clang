@@ -50,7 +50,7 @@ jobs:
   prepare:
     name: Prepare to build binaries
     runs-on: ${{ inputs.runs-on }}
-    if: github.repository == 'llvm/llvm-project'
+    if: true #github.repository == 'llvm/llvm-project'
     outputs:
       release-version: ${{ steps.vars.outputs.release-version }}
       ref: ${{ steps.vars.outputs.ref }}
@@ -148,7 +148,7 @@ jobs:
   build-stage1:
     name: "Build Stage 1"
     needs: prepare
-    if: github.repository == 'llvm/llvm-project'
+    if: true #github.repository == 'llvm/llvm-project'
     runs-on: ${{ inputs.runs-on }}
     steps:
 
@@ -223,7 +223,7 @@ jobs:
     needs:
       - prepare
       - build-stage1
-    if: github.repository == 'llvm/llvm-project'
+    if: true #github.repository == 'llvm/llvm-project'
     runs-on: ${{ inputs.runs-on }}
     steps:
     - name: Checkout Actions
@@ -257,7 +257,7 @@ jobs:
     needs:
       - prepare
       - build-stage2
-    if: github.repository == 'llvm/llvm-project'
+    if: true #github.repository == 'llvm/llvm-project'
     runs-on: ${{ inputs.runs-on }}
     steps:
     - name: Checkout Actions
@@ -469,7 +469,7 @@ jobs:
       - prepare
       - build-stage3-all
     if: >-
-      github.repository == 'llvm/llvm-project'
+      true #github.repository == 'llvm/llvm-project'
     runs-on: ${{ inputs.runs-on }}
     steps:
     - name: Checkout Actions

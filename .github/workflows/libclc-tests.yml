@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   check_libclc:
-    if: github.repository_owner == 'llvm'
+    if: true #github.repository_owner == 'llvm'
     name: Test libclc
     uses: ./.github/workflows/llvm-project-tests.yml
     with:

@@ -340,6 +340,8 @@ void Sema::Initialize() {
       PushOnScopeChains(Context.getUInt128Decl(), TUScope);
   }
 
+  if (getLangOpts().Mic)
+    PushOnScopeChains(Context.getRegionDecl(), TUScope);
 
   // Initialize predefined Objective-C types:
   if (getLangOpts().ObjC) {

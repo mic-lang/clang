@@ -792,7 +792,8 @@ void Sema::DiagnoseUnknownTypeName(IdentifierInfo *&II,
 /// Determine whether the given result set contains either a type name
 /// or
 static bool isResultTypeOrTemplate(LookupResult &R, const Token &NextToken) {
-  bool CheckTemplate = R.getSema().getLangOpts().CPlusPlus &&
+  bool CheckTemplate = (R.getSema().getLangOpts().CPlusPlus ||
+                         R.getSema().getLangOpts().Mic) &&
                        NextToken.is(tok::less);
 
   for (LookupResult::iterator I = R.begin(), IEnd = R.end(); I != IEnd; ++I) {
@@ -969,7 +970,7 @@ Corrected:
 
         NamedDecl *FirstDecl = Corrected.getFoundDecl();
         NamedDecl *UnderlyingFirstDecl = Corrected.getCorrectionDecl();
-        if (getLangOpts().CPlusPlus && NextToken.is(tok::less) &&
+        if ((getLangOpts().CPlusPlus || getLangOpts().Mic) && NextToken.is(tok::less) &&
             UnderlyingFirstDecl && isa<TemplateDecl>(UnderlyingFirstDecl)) {
           UnqualifiedDiag = diag::err_no_template_suggest;
           QualifiedDiag = diag::err_no_member_template_suggest;
@@ -1051,7 +1052,7 @@ Corrected:
     break;
 
   case LookupResult::Ambiguous:
-    if (getLangOpts().CPlusPlus && NextToken.is(tok::less) &&
+    if ((getLangOpts().CPlusPlus || getLangOpts().Mic) && NextToken.is(tok::less) &&
         hasAnyAcceptableTemplateNames(Result, /*AllowFunctionTemplates=*/true,
                                       /*AllowDependent=*/false)) {
       // C++ [temp.local]p3:
@@ -1076,7 +1077,7 @@ Corrected:
     return NameClassification::Error();
   }
 
-  if (getLangOpts().CPlusPlus && NextToken.is(tok::less) &&
+  if ((getLangOpts().CPlusPlus || getLangOpts().Mic) && NextToken.is(tok::less) &&
       (IsFilteredTemplateName ||
        hasAnyAcceptableTemplateNames(
            Result, /*AllowFunctionTemplates=*/true,
@@ -8525,7 +8526,7 @@ void Sema::CheckVariableDeclarationType(VarDecl *NewVD) {
   // This includes arrays of objects with address space qualifiers, but not
   // automatic variables that point to other address spaces.
   // ISO/IEC TR 18037 S5.1.2
-  if (!getLangOpts().OpenCL && NewVD->hasLocalStorage() &&
+  if ((!getLangOpts().Mic && !getLangOpts().OpenCL) && NewVD->hasLocalStorage() &&
       T.getAddressSpace() != LangAS::Default) {
     Diag(NewVD->getLocation(), diag::err_as_qualified_auto_decl) << 0;
     NewVD->setInvalidDecl();
@@ -8623,10 +8624,10 @@ void Sema::CheckVariableDeclarationType(VarDecl *NewVD) {
             return;
           }
         }
-      } else if (T.getAddressSpace() != LangAS::opencl_private &&
+      } else if (!getLangOpts().Mic && (T.getAddressSpace() != LangAS::opencl_private &&
                  // If we are parsing a template we didn't deduce an addr
                  // space yet.
-                 T.getAddressSpace() != LangAS::Default) {
+                 T.getAddressSpace() != LangAS::Default)) {
         // Do not allow other address spaces on automatic variable.
         Diag(NewVD->getLocation(), diag::err_as_qualified_auto_decl) << 1;
         NewVD->setInvalidDecl();
@@ -9155,7 +9156,7 @@ static FunctionDecl *CreateNewFunctionDecl(Sema &SemaRef, Declarator &D,
     D.getMutableDeclSpec().ClearConstexprSpec();
   }
 
-  if (!SemaRef.getLangOpts().CPlusPlus) {
+  if (!SemaRef.getLangOpts().CPlusPlus && !SemaRef.getLangOpts().Mic) {
     // Determine whether the function was written with a prototype. This is
     // true when:
     //   - there is a prototype in the declarator, or
@@ -9725,7 +9726,7 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
   if (IsLocalExternDecl)
     NewFD->setLocalExternDecl();
 
-  if (getLangOpts().CPlusPlus) {
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
     // The rules for implicit inlines changed in C++20 for methods and friends
     // with an in-class definition (when such a definition is not attached to
     // the global module).  User-specified 'inline' overrides this (set when
@@ -10175,7 +10176,7 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
       }
     }
 
-    if (!getLangOpts().CPlusPlus) {
+    if (!getLangOpts().CPlusPlus && !getLangOpts().Mic) {
       // In C, find all the tag declarations from the prototype and move them
       // into the function DeclContext. Remove them from the surrounding tag
       // injection context of the function, which is typically but not always
@@ -10305,7 +10306,7 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
     }
   }
 
-  if (!getLangOpts().CPlusPlus) {
+  if (!getLangOpts().CPlusPlus && !getLangOpts().Mic) {
     // Perform semantic checking on the function declaration.
     if (!NewFD->isInvalidDecl() && NewFD->isMain())
       CheckMain(NewFD, D.getDeclSpec());
@@ -10755,7 +10756,7 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
     }
   }
 
-  if (getLangOpts().CPlusPlus) {
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic) {
     // Precalculate whether this is a friend function template with a constraint
     // that depends on an enclosing template, per [temp.friend]p9.
     if (isFriend && FunctionTemplate &&
@@ -13904,6 +13905,24 @@ void Sema::ActOnUninitializedDecl(Decl *RealDecl) {
     case VarDecl::Definition:
       if (!Var->isStaticDataMember() || !Var->getAnyInitializer())
         break;
+      if (getLangOpts().Mic) {
+        for (auto *Typedef = Var->getType().getTypePtr()->getAs<TypedefType>();
+             Typedef; Typedef = Typedef->getDecl()
+                                  ->getUnderlyingType()
+                                  .getTypePtr()
+                                  ->getAs<TypedefType>()) {
+          if (Typedef->getDecl() == Context.getRegionDecl()) {
+            unsigned depth = CurScope->getDepth();
+            unsigned IntSize = Context.getTargetInfo().getIntWidth();
+            ExprResult Res =
+                IntegerLiteral::Create(Context, llvm::APInt(IntSize, depth),
+                                       Context.UnsignedIntTy, Var->getLocation());
+            Var->setInit(Res.get());
+            Var->setConstexpr(true);
+            break;
+          }
+        }
+      }
 
       // We have an out-of-line definition of a static data member
       // that has an in-class initializer, so we type-check this like
@@ -18060,6 +18079,8 @@ void Sema::ActOnTagFinishDefinition(Scope *S, Decl *TagD,
   }
 
   if (auto *RD = dyn_cast<CXXRecordDecl>(Tag)) {
+    if (getLangOpts().Mic)
+      goto out;
     FieldCollector->FinishClass();
     if (RD->hasAttr<SYCLSpecialClassAttr>()) {
       auto *Def = RD->getDefinition();
@@ -18085,6 +18106,8 @@ void Sema::ActOnTagFinishDefinition(Scope *S, Decl *TagD,
       MarkVTableUsed(RD->getLocation(), RD, /*DefinitionRequired=*/true);
   }
 
+  out:
+  
   // Exit this scope of this tag's definition.
   PopDeclContext();
 

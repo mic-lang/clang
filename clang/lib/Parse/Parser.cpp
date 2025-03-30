@@ -982,6 +982,7 @@ Parser::ParseExternalDeclaration(ParsedAttributes &Attrs,
   case tok::kw_namespace:
   case tok::kw_typedef:
   case tok::kw_template:
+  case tok::kw_lifetime:
   case tok::kw_static_assert:
   case tok::kw__Static_assert:
     // A function definition cannot start with any of these keywords.
@@ -1785,7 +1786,7 @@ Parser::TryAnnotateName(CorrectionCandidateCallback *CCC,
   const bool WasScopeAnnotation = Tok.is(tok::annot_cxxscope);
 
   CXXScopeSpec SS;
-  if (getLangOpts().CPlusPlus &&
+  if ((getLangOpts().CPlusPlus || getLangOpts().Mic) &&
       ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
                                      /*ObjectHasErrors=*/false,
                                      EnteringContext))
@@ -2032,7 +2033,7 @@ bool Parser::TryAnnotateTypeOrScopeToken(
     //            simple-template-id
     SourceLocation TypenameLoc = ConsumeToken();
     CXXScopeSpec SS;
-    if (ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
+    if (getLangOpts().CPlusPlus && ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
                                        /*ObjectHasErrors=*/false,
                                        /*EnteringContext=*/false, nullptr,
                                        /*IsTypename*/ true))
@@ -2061,7 +2062,7 @@ bool Parser::TryAnnotateTypeOrScopeToken(
     }
 
     bool TemplateKWPresent = false;
-    if (Tok.is(tok::kw_template)) {
+    if (Tok.is(tok::kw_template) || Tok.is(tok::kw_lifetime)) {
       ConsumeToken();
       TemplateKWPresent = true;
     }
@@ -2113,7 +2114,7 @@ bool Parser::TryAnnotateTypeOrScopeToken(
   bool WasScopeAnnotation = Tok.is(tok::annot_cxxscope);
 
   CXXScopeSpec SS;
-  if (getLangOpts().CPlusPlus)
+  if (getLangOpts().CPlusPlus || getLangOpts().Mic)
     if (ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
                                        /*ObjectHasErrors=*/false,
                                        /*EnteringContext*/ false))
@@ -2172,7 +2173,7 @@ bool Parser::TryAnnotateTypeOrScopeTokenAfterScopeSpec(
       return false;
     }
 
-    if (!getLangOpts().CPlusPlus) {
+    if (!getLangOpts().CPlusPlus && !getLangOpts().Mic) {
       // If we're in C, the only place we can have :: tokens is C23
       // attribute which is parsed elsewhere. If the identifier is not a type,
       // then it can't be scope either, just early exit.
@@ -2242,9 +2243,9 @@ bool Parser::TryAnnotateTypeOrScopeTokenAfterScopeSpec(
 /// Note that this routine emits an error if you call it with ::new or ::delete
 /// as the current tokens, so only call it in contexts where these are invalid.
 bool Parser::TryAnnotateCXXScopeToken(bool EnteringContext) {
-  assert(getLangOpts().CPlusPlus &&
+  /*assert(getLangOpts().CPlusPlus &&
          "Call sites of this function should be guarded by checking for C++");
-  assert(MightBeCXXScopeToken() && "Cannot be a type or scope token!");
+  assert(MightBeCXXScopeToken() && "Cannot be a type or scope token!");*/
 
   CXXScopeSpec SS;
   if (ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,

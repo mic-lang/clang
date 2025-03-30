@@ -127,6 +127,8 @@ void LangOptions::setLangDefaults(LangOptions &Opts, Language Lang,
   Opts.Digraphs = Std.hasDigraphs();
   Opts.RawStringLiterals = Std.hasRawStringLiterals();
 
+  Opts.Mic = Std.isMic();
+
   Opts.HLSL = Lang == Language::HLSL;
   if (Opts.HLSL && Opts.IncludeDefaultHeader)
     Includes.push_back("hlsl.h");

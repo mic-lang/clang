@@ -64,7 +64,8 @@ enum LangFeatures {
   GNUMode = (1 << 14),
   HexFloat = (1 << 15),
   OpenCL = (1 << 16),
-  HLSL = (1 << 17)
+  HLSL = (1 << 17),
+  Mic = (1 << 18)
 };
 
 /// LangStandard - Information about the properties of a particular language
@@ -148,7 +149,10 @@ public:
   bool hasHexFloats() const { return Flags & HexFloat; }
 
   /// isOpenCL - Language is a OpenCL variant.
-  bool isOpenCL() const { return Flags & OpenCL; }
+  bool isOpenCL() const { return Flags & OpenCL; } 
+  
+  /// isMic - Language is a superset of Mic.
+  bool isMic() const { return Flags & Mic; }
 
   static Kind getLangKind(StringRef Name);
   static Kind getHLSLLangKind(StringRef Name);

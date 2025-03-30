@@ -76,6 +76,7 @@
 #include "llvm/TargetParser/X86TargetParser.h"
 #include "llvm/Transforms/Utils/BuildLibCalls.h"
 #include <optional>
+#include <set>
 
 using namespace clang;
 using namespace CodeGen;
@@ -3860,7 +3861,8 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
   // Defer code generation to first use when possible, e.g. if this is an inline
   // function. If the global must always be emitted, do it eagerly if possible
   // to benefit from cache locality.
-  if (MustBeEmitted(Global) && MayBeEmittedEagerly(Global)) {
+  if ((MustBeEmitted(Global) && MayBeEmittedEagerly(Global)) || 
+      (getLangOpts().Mic && Global->getDescribedTemplate())) {
     // Emit the definition if it can't be deferred.
     EmitGlobalDefinition(GD);
     addEmittedDeferredDecl(GD);
@@ -6868,10 +6870,11 @@ void CodeGenModule::EmitDeclContext(const DeclContext *DC) {
   }
 }
 
+std::set<const IdentifierInfo*> FnNames;
 /// EmitTopLevelDecl - Emit code for a single top level declaration.
 void CodeGenModule::EmitTopLevelDecl(Decl *D) {
   // Ignore dependent declarations.
-  if (D->isTemplated())
+  if (!getLangOpts().Mic && D->isTemplated())
     return;
 
   // Consteval function shouldn't be emitted.
@@ -6882,6 +6885,14 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
   case Decl::CXXConversion:
   case Decl::CXXMethod:
   case Decl::Function:
+    if (getLangOpts().Mic) {
+      const IdentifierInfo* I = cast<FunctionDecl>(D)->getIdentifier();
+      std::set<const clang::IdentifierInfo*>::iterator It = FnNames.find(I);
+      if (It != FnNames.end()) {
+        break;  
+      } 
+      FnNames.insert(I);
+    }
     EmitGlobal(cast<FunctionDecl>(D));
     // Always provide some coverage mapping
     // even for the functions that aren't emitted.
@@ -6920,6 +6931,8 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
         DI->completeTemplateDefinition(*Spec);
   } [[fallthrough]];
   case Decl::CXXRecord: {
+    if (getLangOpts().Mic)
+      break;
     CXXRecordDecl *CRD = cast<CXXRecordDecl>(D);
     if (CGDebugInfo *DI = getModuleDebugInfo()) {
       if (CRD->hasDefinition())
@@ -6936,7 +6949,13 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
   }
     // No code generation needed.
   case Decl::UsingShadow:
+    break;
   case Decl::ClassTemplate:
+    if (getLangOpts().Mic)
+    if (CGDebugInfo *DI = getModuleDebugInfo())
+    if (cast<RecordDecl>(cast<ClassTemplateDecl>(D)->getTemplatedDecl())->getDefinition())
+      DI->EmitAndRetainType(getContext().getRecordType(cast<RecordDecl>(cast<ClassTemplateDecl>(D)->getTemplatedDecl())));
+      break;
   case Decl::VarTemplate:
   case Decl::Concept:
   case Decl::VarTemplatePartialSpecialization:

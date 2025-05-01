@@ -13903,8 +13903,6 @@ void Sema::ActOnUninitializedDecl(Decl *RealDecl) {
 
     switch (DefKind) {
     case VarDecl::Definition:
-      if (!Var->isStaticDataMember() || !Var->getAnyInitializer())
-        break;
       if (getLangOpts().Mic) {
         for (auto *Typedef = Var->getType().getTypePtr()->getAs<TypedefType>();
              Typedef; Typedef = Typedef->getDecl()
@@ -13923,6 +13921,8 @@ void Sema::ActOnUninitializedDecl(Decl *RealDecl) {
           }
         }
       }
+      if (!Var->isStaticDataMember() || !Var->getAnyInitializer())
+        break;
 
       // We have an out-of-line definition of a static data member
       // that has an in-class initializer, so we type-check this like

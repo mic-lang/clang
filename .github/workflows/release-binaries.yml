@@ -50,7 +50,7 @@ jobs:
   prepare:
     name: Prepare to build binaries
     runs-on: ${{ inputs.runs-on }}
-    if: github.repository == 'llvm/llvm-project'
+    if: true
     outputs:
       release-version: ${{ steps.vars.outputs.release-version }}
       ref: ${{ steps.vars.outputs.ref }}
@@ -100,7 +100,7 @@ jobs:
         trimmed=$(echo ${{ inputs.release-version }} | xargs)
         if [ -n "$trimmed" ]; then
           release_version="$trimmed"
-          ref="llvmorg-$release_version"
+          ref="mic-19.1.7"
         else
           release_version="${{ (github.event_name == 'pull_request' && format('PR{0}', github.event.pull_request.number)) || 'CI'}}-${{ github.sha }}"
           ref=${{ github.sha }}
@@ -135,20 +135,20 @@ jobs:
           target_cmake_flags="$target_cmake_flags -DBOOTSTRAP_DARWIN_osx_ARCHS=$arches -DBOOTSTRAP_DARWIN_osx_BUILTIN_ARCHS=$arches"
         fi
 
-        build_flang="true"
+        build_flang="false"
 
         if [ "${{ runner.os }}" = "Windows" ]; then
           # The build times out on Windows, so we need to disable LTO.
-          target_cmake_flags="$target_cmake_flags -DLLVM_RELEASE_ENABLE_LTO=OFF"
+          target_cmake_flags="$target_cmake_flags -DLLVM_RELEASE_ENABLE_LTO=OFF -DLLVM_RELEASE_ENABLE_PROJECTS=clang"
         fi
 
         echo "target-cmake-flags=$target_cmake_flags" >> $GITHUB_OUTPUT
         echo "build-flang=$build_flang" >> $GITHUB_OUTPUT
 
-  build-stage1:
+  release:
     name: "Build Stage 1"
     needs: prepare
-    if: github.repository == 'llvm/llvm-project'
+    if: true
     runs-on: ${{ inputs.runs-on }}
     steps:
 
@@ -207,286 +207,28 @@ jobs:
             -DBOOTSTRAP_LLVM_PARALLEL_LINK_JOBS=1 \
             -DBOOTSTRAP_CPACK_PACKAGE_FILE_NAME="${{ needs.prepare.outputs.release-binary-basename }}" \
             -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_INSTALL_PREFIX=/tmp/build
         ninja -v -C ${{ steps.setup-stage.outputs.build-prefix }}/build
+        ninja install -v -C ${{ steps.setup-stage.outputs.build-prefix }}/build
+
         # There is a race condition on the MacOS builders and this command is here
         # to help debug that when it happens.
-        ls -ltr ${{ steps.setup-stage.outputs.build-prefix }}/build
+        ls -ltr /tmp/build
     
-    - name: Save Stage
-      uses: ./workflows-main/.github/workflows/release-binaries-save-stage
-      with:
-        build-prefix: ${{ steps.setup-stage.outputs.build-prefix }}
+        tar -c /tmp/build | zstd -T0 -c > build.tar.zst
+        tar -tf build.tar.zst
 
-  build-stage2:
-    name: "Build Stage 2"
-    needs:
-      - prepare
-      - build-stage1
-    if: github.repository == 'llvm/llvm-project'
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-    - name: Checkout Actions
-      uses: actions/checkout@v4
+    - name: Upload Stage 1 Build Dir
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
       with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
-        sparse-checkout: |
-          .github/workflows/
-        sparse-checkout-cone-mode: false
-        path: workflows
-    - name: Setup Stage
-      id: setup-stage
-      uses: ./workflows/.github/workflows/release-binaries-setup-stage
-      with:
-        previous-artifact: build-stage1
+        name: ${{ runner.os}}-${{ runner.arch }}-build
+        path: build.tar.zst
+        retention-days: 2
 
-    - name: Build Stage 2
-      # Re-enable once PGO builds are supported.
-      if: needs.prepare.outputs.enable-pgo == 'true'
-      shell: bash
+    - name: Upload Release Asset
       run: |
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix}}/build stage2-instrumented
-
-    - name: Save Stage
-      uses: ./workflows/.github/workflows/release-binaries-save-stage
-      with:
-        build-prefix: ${{ steps.setup-stage.outputs.build-prefix }}
-
-  build-stage3-clang:
-    name: "Build Stage 3 LLVM/Clang"
-    needs:
-      - prepare
-      - build-stage2
-    if: github.repository == 'llvm/llvm-project'
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-    - name: Checkout Actions
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
-        sparse-checkout: |
-          .github/workflows/
-        sparse-checkout-cone-mode: false
-        path: workflows
-    - name: Setup Stage
-      id: setup-stage
-      uses: ./workflows/.github/workflows/release-binaries-setup-stage
-      with:
-        previous-artifact: build-stage2
-
-    - name: Build LLVM/Clang
-      shell: bash
-      run: |
-        # There is a race condition on the MacOS builders and this command is here
-        # to help debug that when it happens.
-        ls -ltr ${{ steps.setup-stage.outputs.build-prefix }}/build
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build stage2-clang
-        # Build some of the larger binaries here too.
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build/tools/clang/stage2-bins/ \
-            clang-scan-deps \
-            modularize clangd \
-            clangd-indexer \
-            clang-check \
-            ${{ (runner.os == 'Linux' && 'clangd-fuzzer') || '' }} \
-            clang-tidy \
-            llc \
-            lli \
-            llvm-exegesis \
-            llvm-opt-fuzzer \
-            llvm-reduce \
-            llvm-lto \
-            dsymutil
-
-    - name: Save Stage
-      uses: ./workflows/.github/workflows/release-binaries-save-stage
-      with:
-        build-prefix: ${{ steps.setup-stage.outputs.build-prefix }}
-
-  build-stage3-flang:
-    name: "Build Stage 3 Flang/MLIR/Bolt"
-    needs:
-      - prepare
-      - build-stage3-clang
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-    - name: Checkout Actions
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
-        sparse-checkout: |
-          .github/workflows/
-        sparse-checkout-cone-mode: false
-        path: workflows
-    - name: Setup Stage
-      id: setup-stage
-      uses: ./workflows/.github/workflows/release-binaries-setup-stage
-      with:
-        previous-artifact: build-stage3-clang
-
-    - name: Build Flang / MLIR / Bolt
-      shell: bash
-      run: |
-        # Build some of the mlir tools that take a long time to link
-        if [ "${{ needs.prepare.outputs.build-flang }}" = "true" ]; then
-          ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build/tools/clang/stage2-bins/ -j2 flang-new bbc
-        fi
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build/tools/clang/stage2-bins/ \
-            mlir-bytecode-parser-fuzzer \
-            mlir-cpu-runner \
-            mlir-lsp-server \
-            mlir-opt \
-            mlir-query \
-            mlir-reduce \
-            mlir-text-parser-fuzzer \
-            mlir-translate \
-            mlir-transform-opt \
-            mlir-cat \
-            mlir-minimal-opt \
-            mlir-minimal-opt-canonicalize \
-            mlir-pdll-lsp-server \
-            llvm-bolt \
-            llvm-bolt-heatmap
-    
-    - name: Save Stage
-      uses: ./workflows/.github/workflows/release-binaries-save-stage
-      with:
-        build-prefix: ${{ steps.setup-stage.outputs.build-prefix }}
-
-  build-stage3-all:
-    name: "Build Stage 3"
-    needs:
-      - prepare
-      - build-stage3-flang
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-    - name: Checkout Actions
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
-        sparse-checkout: |
-          .github/workflows/
-        sparse-checkout-cone-mode: false
-        path: workflows
-    - name: Setup Stage
-      id: setup-stage
-      uses: ./workflows/.github/workflows/release-binaries-setup-stage
-      with:
-        previous-artifact: build-stage3-flang
-
-    - name: Build Release Package
-      shell: bash
-      run: |
-        which cmake
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build stage2-package
-        # Copy Release artifact to the workspace so it is easier to upload.
-        # This is necessary, because on Windows, the build-prefix path can
-        # only be used on bash steps, because it uses the form of /d/files/
-        # and other steps expect D:\files.
-        mv ${{ steps.setup-stage.outputs.build-prefix  }}/build/tools/clang/stage2-bins/${{ needs.prepare.outputs.release-binary-filename }} .
-
-    - uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 #v4.3.0
-      with:
-        name: ${{ runner.os }}-${{ runner.arch }}-release-binary
-        # Due to path differences on Windows when running in bash vs running on node,
-        # we need to search for files in the current workspace.
-        path: |
-          ${{ needs.prepare.outputs.release-binary-filename }}
-
-    # Clean up some build files to reduce size of artifact.
-    - name: Clean Up Build Directory
-      shell: bash
-      run: |
-        find ${{ steps.setup-stage.outputs.build-prefix }}/build -iname ${{ needs.prepare.outputs.release-binary-filename }} -delete
-        rm -Rf ${{ steps.setup-stage.outputs.build-prefix }}/build/tools/clang/stage2-bins/_CPack_Packages
-
-    - name: Save Stage
-      uses: ./workflows/.github/workflows/release-binaries-save-stage
-      with:
-        build-prefix: ${{ steps.setup-stage.outputs.build-prefix }}
-
-  upload-release-binaries:
-    name: "Upload Release Binaries"
-    needs:
-      - prepare
-      - build-stage3-all
-    if: >-
-      always() &&
-      github.event_name != 'pull_request' &&
-      needs.prepare.outputs.upload == 'true'
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write # For release uploads
-      id-token: write     # For artifact attestations
-      attestations: write # For artifact attestations
-
-    steps:
-    - name: Checkout Release Scripts
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      with:
-        sparse-checkout: |
-          llvm/utils/release/github-upload-release.py
-          llvm/utils/git/requirements.txt
-        sparse-checkout-cone-mode: false
-
-    - name: 'Download artifact'
-      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
-      with:
-        pattern: '*-release-binary'
-        merge-multiple: true
-
-    - name: Attest Build Provenance
-      id: provenance
-      uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
-      with:
-        subject-path: ${{ needs.prepare.outputs.release-binary-filename }}
-
-    - name: Rename attestation file
-      run:
-        mv ${{ steps.provenance.outputs.bundle-path }} ${{ needs.prepare.outputs.release-binary-filename }}.jsonl
-
-    - name: Upload Build Provenance
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 #v4.3.3
-      with:
-        name: ${{ needs.prepare.outputs.release-binary-filename }}-attestation
-        path: ${{ needs.prepare.outputs.release-binary-filename }}.jsonl
-
-    - name: Install Python Requirements
-      run: |
-        pip install --require-hashes -r ./llvm/utils/git/requirements.txt
-
-    - name: Upload Release
-      shell: bash
-      run: |
-        ./llvm/utils/release/github-upload-release.py \
-        --token ${{ github.token }} \
-        --release ${{ needs.prepare.outputs.release-version }} \
-        upload \
-        --files ${{ needs.prepare.outputs.release-binary-filename }}*
-
-  test-stage3:
-    name: "Test Stage 3"
-    needs:
-      - prepare
-      - build-stage3-all
-    if: >-
-      github.repository == 'llvm/llvm-project'
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-    - name: Checkout Actions
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
-        sparse-checkout: |
-          .github/workflows/
-        sparse-checkout-cone-mode: false
-        path: workflows
-    - name: Setup Stage
-      id: setup-stage
-      uses: ./workflows/.github/workflows/release-binaries-setup-stage
-      with:
-        previous-artifact: build-stage3-all
-
-    - name: Run Tests
-      shell: bash
-      run: |
-        ninja -C ${{ steps.setup-stage.outputs.build-prefix }}/build stage2-check-all
+        cp build.tar.zst ${{ runner.os }}-${{ runner.arch }}-release-build.tar.zst
+        echo $MY_GITHUB_TOKEN | gh auth login --with-token
+        git remote add origin git@github.com:wo4mei3/clang.git
+        gh release upload ${{github.ref_name}} ${{ runner.os }}-${{ runner.arch }}-release-build.tar.zst

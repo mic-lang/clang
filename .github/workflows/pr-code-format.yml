@@ -11,7 +11,7 @@ on:
 jobs:
   code_formatter:
     runs-on: ubuntu-latest
-    if: github.repository == 'llvm/llvm-project'
+    if: true
     steps:
       - name: Fetch LLVM sources
         uses: actions/checkout@v4

@@ -155,7 +155,7 @@ jobs:
     - name: Checkout Actions
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
-        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'main' }}
+        ref: ${{ (github.event_name == 'pull_request' && github.sha) || 'mic-19.1.7' }}
         sparse-checkout: |
           .github/workflows/
         sparse-checkout-cone-mode: false

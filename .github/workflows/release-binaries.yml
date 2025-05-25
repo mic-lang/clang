@@ -230,5 +230,4 @@ jobs:
       run: |
         cp build.tar.zst ${{ runner.os }}-${{ runner.arch }}-release-build.tar.zst
         echo $MY_GITHUB_TOKEN | gh auth login --with-token
-        git remote add origin git@github.com:wo4mei3/clang.git
         gh release upload ${{github.ref_name}} ${{ runner.os }}-${{ runner.arch }}-release-build.tar.zst
